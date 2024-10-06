@@ -100,7 +100,7 @@ const decr = () => setCount(count - 1);
 ```
 
 ```jsx
-const dispatch = useReducer((state, action) => {
+const [state, dispatch] = useReducer((state, action) => {
   switch (action.type) {
     case "increment":
       return state + 1;
@@ -134,6 +134,21 @@ fn update(model, msg) {
   }
 }
 ```
+
+We also need to update our main function to include `init` and `update`, as well as moving our `view` code.
+
+```gleam
+fn view() {
+  html.h1([], [html.text("Hello, world")])
+}
+
+pub fn main() {
+  let app = lustre.simple(init, update, view)
+  let assert Ok(_) = lustre.start(app, "#app", Nil)
+}
+```
+
+> More on `lustre.simple` later.
 
 You can read more about this approach in the [state management guide](https://hexdocs.pm/lustre/guide/02-state-management.html).
 
@@ -177,6 +192,14 @@ div([on("mousemove", fn(event) {
 }], [...])
 ```
 
+This might seem very familiar, if you've used Redux heavily. A lot of React devs
+have scars from those days and tend to dislike anything similar. Don't worry!
+Gleam takes inspiration from Elm, which is what originally inspired Redux.
+
+You might have noticed lustre already has a lot less Boilerplate, which is the
+first big complaint of redux. The second being lack of built in support for
+async, which we'll see is a key part of Lustre (and Elm).
+
 ### Write a component
 
 **In React** components are functions that take a single `props` argument and
@@ -194,15 +217,92 @@ function Counter({ initialCount }) {
 ---
 
 **In Lustre** components are more commonly referred to as "view functions". They
-are regular Gleam functions
+are regular Gleam functions.
+
+```gleam
+fn view(model) {
+  let count = int.to_string(model)
+  button([on_click(Incr)], [text(count)])
+}
+```
+
+Generally, in lustre you'll just use "view functions" which similar to writing
+React components without any hooks and thus no side effect. Luster does have a
+primitive, [lustre.component](https://hexdocs.pm/lustre/lustre.html#component),
+for cases where local state is needed, but they're a lot heavier compared to
+components in React. Avoid using them for things like buttons but things like
+comboboxes with complex keyboard interractions is a good use case.
 
 ### Fetch data
 
-**In React**...
+**In React** the simplest example of data fetching is done with a useEffect.
+This will run our fetch once, after the page has rendered, then once we get a
+response we store it in a useState which triggers a new render.
+
+```jsx
+const [ip, setIp] = useState();
+
+useEffect(() => {
+  fetch("https://api.ipify.org")
+    .then((response) => response.text())
+    .then((data) => setIp(data));
+}, []);
+```
 
 ---
 
-**In Lustre**...
+**In Lustre** the higher level process is pretty similar, but since we don't have
+local state in lustre we also don't have a way to manage effects locally. We need to
+pull the effects up to our update & init functions.
+
+The first thing we need to do is change out the [simple app contructor](https://hexdocs.pm/lustre/lustre.html#simple)
+for the final [application constructor](https://hexdocs.pm/lustre/lustre.html#application) which supports side effects.
+
+```gleam
+pub fn main() {
+  // Change lustre.simple -> lustre.application
+  let app = lustre.application(init, update, view)
+  let assert Ok(_) = lustre.start(app, "#app", Nil)
+}
+```
+
+Next we're going to add `lustre_http` to our project, which handles creating
+effects from network requests for us. (more on creating [your own effects here](https://hexdocs.pm/lustre/guide/03-side-effects.html))
+
+```bash
+gleam add lustre_http
+```
+
+```gleam
+pub type Msg {
+  ApiReturnedIpAddress(Result(String, lustre_http.HttpError))
+}
+
+fn init(_flags) {
+  let model = Model(...)
+  let get_ip = lustre_http.get(
+    "https://api.ipify.org",
+    ApiReturnedIpAddress
+  )
+
+  #(model, get_ip)
+}
+
+// If you're new to Gleam, this double "Model" might seem strange. Just think of the inner Model as the "Default variant".
+pub type Model {
+  Model(ip_address: Result(String, HttpError))
+}
+
+pub fn update(model, msg) {
+  case msg {
+    ApiReturnedIpAddress(ip) -> #(Model(..model, ip_address: ip), effect.none())
+  }
+}
+
+
+```
+
+You can read more about effects in the [side effects guide](https://hexdocs.pm/lustre/guide/03-side-effects.html).
 
 ## Where to go next
 
