@@ -34,8 +34,8 @@ To start your dev server, run `mix phx.start`
 
 **In Lustre**, after you've created a new Gleam project with `gleam new`, you need
 to install the `lustre` package with `gleam add lustre`. Most Lustre projects will
-dd the dev tools too with `gleam add --dev lustre_dev_tools`. A simple hello world
-might look like this:
+add the dev tools too with `gleam add --dev lustre_dev_tools`. A simple hello
+world might look like this:
 
 ```gleam
 // main.gleam
