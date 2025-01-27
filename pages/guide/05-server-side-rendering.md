@@ -169,7 +169,8 @@ model encoded as JSON (it might just be an `Int` in this example, but it could
 be anything).
 
 On the client, it's a matter of reading that JSON and decoding it as our initial
-model. The [plinth](https://hexdocs.pm/plinth/plinth.html) package provides
+model, we'll discuss how to get this code to the client in the next guide.
+The [plinth](https://hexdocs.pm/plinth/plinth.html) package provides
 bindings to many browser APIs, we can use that to read the JSON out of the script
 tag:
 
